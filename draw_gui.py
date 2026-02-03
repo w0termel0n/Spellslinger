@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 from PIL import Image, ImageDraw, ImageTk
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 import os
 from spells import SPELLS
 
