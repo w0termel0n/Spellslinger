@@ -23,7 +23,7 @@ class RuneDrawer:
         self.side_panel = tk.Frame(root)
         self.side_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        self.label = tk.Label(self.side_panel, text="", font=("Comic Sans MS", 14))
+        self.label = tk.Label(self.side_panel, text="", font=("Comic Sans MS", 12))
         self.label.pack(pady=10)
 
         self.reference_label = tk.Label(self.side_panel)
@@ -99,7 +99,7 @@ class RuneDrawer:
             "Available runes:\n" + ", ".join(lines)
         )
 
-        if selection not in [s.split()[0] for s in spell_map]:
+        if selection not in spell_map.values():
             messagebox.showerror("Error", "Invalid selection")
             self.choose_spell()
             return
@@ -141,7 +141,7 @@ class RuneDrawer:
         if self.mode == "dataset" and self.random_mode:
             self.pick_random_spell()
         elif self.mode == "dataset":
-            self.label.config(text=f"Draw this rune: {self.current_spell}")
+            self.label.config(text=f"< Draw this rune in one line: {self.current_spell}")
 
     # DO NOT USE YET IT NO WORKY
 
@@ -196,7 +196,7 @@ class RuneDrawer:
         img = Image.open(ref_path).resize((140, 140))
         self.ref_image = ImageTk.PhotoImage(img)
         self.reference_label.config(image=self.ref_image)
-        self.label.config(text=f"Draw this rune: {self.current_spell}")
+        self.label.config(text=f"< Draw this rune in one line: {self.current_spell}")
 
     # UTILS
 
