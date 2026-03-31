@@ -1,4 +1,4 @@
-from spell import Spell
+from spells import Spell
 
 SPELL_LIST = {
     "blindness": {
@@ -62,4 +62,3 @@ SPELL_LIST = {
         "effects": {}
     },
 }
-
