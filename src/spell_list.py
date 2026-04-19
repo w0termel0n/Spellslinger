@@ -4,61 +4,82 @@ SPELL_LIST = {
     "blindness": {
         "dmg": 0,
         "mana_cost": 5,
-        "effects": {"blind": 0}
+        "effects": {"blind": 1},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/blindness.png",
     },
     "blitz": {
         "dmg": 0,
         "mana_cost": 10,
-        "effects": {}
+        "effects": {"blitz": 1},
+        "delivery": "instant",
     },
     "counterspell": {
         "dmg": 0,
         "mana_cost": 15,
-        "effects": {"counter": 0}
+        "effects": {"counter": 1},
+        "delivery": "instant",
     },
     "curse": {
         "dmg": 0,
         "mana_cost": 20,
-        "effects": {"curse": 0}
+        "effects": {"curse": 1},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/curse.png",
     },
     "fireball": {
         "dmg": 50,
         "mana_cost": 25,
-        "effects": {"burning": 0}
+        "effects": {"burning": .1},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/fireball.png",
     },
     "frostbite": {
         "dmg": 0,
         "mana_cost": 30,
-        "effects": {"freezing": 0}
+        "effects": {"freezing": .1},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/frostbite.png",
     },
     "glaciate": {
         "dmg": 0,
         "mana_cost": 35,
-        "effects": {"glaciate": 0}
+        "effects": {"glaciate": 1},
+        "bonus_chance": .25,
+        "delivery": "instant",
     },
     "kindling": {
         "dmg": 0,
         "mana_cost": 40,
-        "effects": {"kindling": 0}
+        "effects": {"kindling": 1},
+        "bonus_chance": .25,
+        "delivery": "instant",
     },
     "leech": {
-        "dmg": 0,
+        "dmg": 20,
         "mana_cost": 45,
-        "effects": {"leech": 0}
+        "effects": {"leech": 1},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/leech.png",
+        "leech": True,
     },
     "roulette": {
         "dmg": 0,
         "mana_cost": 50,
-        "effects": {"blind": 0, "burning": 0, "curse": 0, "freezing": 0, "glaciate": 0, "kindling": 0, "leech": 0 }
+        "effects": {"blind": .5, "burning": .5, "curse": .5, "freezing": .5, "glaciate": .5, "kindling": .5, "leech": .5, "shield": .5},
+        "delivery": "instant",
     },
     "shield": {
         "dmg": 0,
         "mana_cost": 55,
-        "effects": {"shield": 0}
+        "effects": {"shield": 1},
+        "delivery": "instant",
     },
     "spike": {
         "dmg": 0,
         "mana_cost": 60,
-        "effects": {}
+        "effects": {},
+        "delivery": "projectile",
+        "projectile_img": "assets/projectiles/spike.png",
     },
 }
