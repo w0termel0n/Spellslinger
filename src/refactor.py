@@ -183,20 +183,25 @@ class Entity(pygame.sprite.Sprite):
             max_mana (int) - maximum possible mana
         """
         super().__init__()
+        # Entity icon
         self.image = pygame.image.load(icon).convert()
         self.image = pygame.transform.scale(self.image, (200, 250))
 
+        # Surface to display icon
         self.rect = self.image.get_rect(topleft=position)
 
-        # Core stats
+        # Entity health
         self.max_health = max_health
         self.health = max_health
 
+        # Entity mana
         self.max_mana = max_mana
         self.mana = max_mana
 
+        # Entity mana regen
         self.last_mana_regen = pygame.time.get_ticks()
 
+        # Entity effects
         self.effects = {}
 
     def spend_mana(self, amount):
@@ -209,9 +214,12 @@ class Entity(pygame.sprite.Sprite):
         Returns:
             bool - True if enough mana to cast, else False
         """
+        # Check if current mana exceeds cost of spell
         if self.mana >= amount:
+            # If greater, decrease mana by cost
             self.mana -= amount
             return True
+        # If less, return False
         return False
     
     def __str__(self):
@@ -281,21 +289,27 @@ class Projectile:
             spell (Spell) - spell being cast
             duration (int) - flight time of spell
         """
+        # Properties of spell casted
         self.caster = caster
         self.target = target
         self.spell = spell
 
+        # Image of projectile
         if spell.projectile_img:
             self.image = get_image(spell.projectile_img)
         else:
             self.image = None
 
+        # Projectile start and end
         self.start_pos = caster.rect.midright
         self.end_pos = target.rect.midleft
 
+        # Maximum time in air
         self.duration = duration
+        # Time spent in air
         self.elapsed = 0
 
+        # Positions of the projectile
         self.position = list(self.start_pos)
 
     def update(self, dt):
@@ -308,11 +322,13 @@ class Projectile:
         Returns:
             bool - True if it's reached target, else False
         """
-        
+        # Increment time in flight
         self.elapsed += dt
+
+        # Determing progress of flight
         t = min(self.elapsed / self.duration, 1)
 
-        # Linear interpolation (LERP)
+        # Determine position in air from progress of flight
         self.position[0] = self.start_pos[0] + (self.end_pos[0] - self.start_pos[0]) * t
         self.position[1] = self.start_pos[1] + (self.end_pos[1] - self.start_pos[1]) * t
 
@@ -325,8 +341,11 @@ class Projectile:
         Args:
             screen (pygame.display) - screen to be drawn on
         """
+        # Check if projectile has an image
         if self.image:
+            # Draw the image on rect
             rect = self.image.get_rect(center=(int(self.position[0]), int(self.position[1])))
+            #Display the image
             screen.blit(self.image, rect)
 
 # ---------------
@@ -364,64 +383,91 @@ def draw_value_bar(screen, color, current, max_value, x, y, length, height):
         length (int) - length of bar
         height (int) - height of bar
     """
+    # Ensure current value does not exceed max
     current = clamp(current, 0, max_value)
+    # Calculate the percentage of value
     percentage = current / max_value
 
+    # Draw background of bar
     pygame.draw.rect(screen, GRAY, (x, y, length, height))
-    # Foreground, scaled by ratio
+    # Draw the value bar
+    # Make value var red
     if color == "mana":
         pygame.draw.rect(screen, BLUE, (x, y, int(length * percentage), height))
+    # Make value bar blue
     elif color == "health":
         pygame.draw.rect(screen, RED, (x, y, int(length * percentage), height))
-    # Border for clarity
+    # Outline value bar
     pygame.draw.rect(screen, BLACK, (x, y, length, height), 2)
 
 def start_menu():
     """
     Draws the starting screen of the game
     """
+    # Initialize pygame
     pygame.init()
+    # Create window for game
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    # Title the window
     pygame.display.set_caption("Spellslinger")
 
+    # Initialize fonts
     pygame.font.init()
+    # Store font for regular buttons
     font = pygame.font.SysFont("caveatregular", 30)
+    # Store font for title
     title_font = pygame.font.SysFont("caveatregular", 80)
 
+    # Run until interrupted
     running = True
     while running:
-
+        # Make background purple
         screen.fill((60,25,60))
+        # Determine position of mouse cursor
         mouse = pygame.mouse.get_pos()
 
+        # Create menu buttons
         play_button = pygame.Rect(CENTER_X - 90, CENTER_Y - 50 // 2 - 20, 140, 50)
         quit_button = pygame.Rect(CENTER_X - 90, CENTER_Y - 50 // 2 + 60, 140, 50)
 
+        # Change menu button color on click
         pygame.draw.rect(screen, (170,170,170) if play_button.collidepoint(mouse) else (100,100,100), play_button)
         pygame.draw.rect(screen, (170,170,170) if quit_button.collidepoint(mouse) else (100,100,100), quit_button)
 
+        # Instantiate text
         title_text = title_font.render("Spellslinger", True, WHITE)
         play_text = font.render("Play", True, WHITE)
         quit_text = font.render("Quit", True, WHITE)
 
+        # Display Text
         screen.blit(title_text, (CENTER_X - 185, 100))
         screen.blit(play_text, (CENTER_X - 45, CENTER_Y - 50 // 2 - 15))
         screen.blit(quit_text, (CENTER_X - 45, CENTER_Y - 50 // 2 + 65))
 
+        # Watch for menu click
         for event in pygame.event.get():
-
+            # Check for X button
             if event.type == pygame.QUIT:
+                # Interupt the loop
                 running = False
+            # Check for menu button press
             if event.type == pygame.MOUSEBUTTONDOWN:
+                # Check for play button
                 if play_button.collidepoint(mouse):
+                    # Play the game
                     run()
                     return
+                # Check for quit button
                 if quit_button.collidepoint(mouse):
+                    # Interupt the loop
                     running = False
 
+        # Update display on action
         pygame.display.update()
     
+    # Quit the game
     pygame.quit()
+    # Close the program
     sys.exit()
 
 def abbreviate_spell(name):
@@ -450,30 +496,43 @@ def draw_effect_row(screen, entity, effects, x, y, direction="up"):
         y (int) - y position of effect icon
         direction (str) - determines above or below value bars
     """
+    # Spacing between icons
     spacing = 36
+    # Run for every possible effect
     for i, effect in enumerate(effects):
+        # Check for effect
         if effect not in EFFECT_ICONS:
             continue
 
+        # Retrieve effect icon
         icon = get_icon(EFFECT_ICONS[effect])
 
+        # Check if icon drawn above or below bars
         if direction == "up":
+            # Draw above the bars
             pos_y = y - spacing
         else:
+            # Draw below the bars
             pos_y = y + spacing
 
-         # --- CURSE LABEL ---
+         # Check if curse is active
         if effect == "curse":
+            # Store blocked spell
             blocked = entity.effects["curse"].get("blocked_spell", "")
+            # Store name of blocked spell
             label_text = abbreviate_spell(blocked)
 
+            # Store font for text
             font = pygame.font.SysFont("caveatregular", 30)
+            # Store text of blocked spell
             label = font.render(label_text, True, GRAY)
 
-            # center text under icon
+            # Initialize text
             text_rect = label.get_rect(center=(x + 18   , y + 55))
+            # Display text
             screen.blit(label, text_rect)
 
+        # Draw effect icon
         screen.blit(icon, (x + i * spacing, pos_y))
 
 
@@ -494,35 +553,48 @@ def init():
         spellbook (pygame.image) - image of spellbook for UI
         projectiles (array) - array of active Projectiles
     """
+    # Initialize pygame
     pygame.init()
+    # Create window for game
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    # Title game window
     pygame.display.set_caption("Spellslinger")
 
+    # Load image of spellbook for UI
     spellbook = pygame.image.load("assets/Spellbook.png")
+    # Create image of spellbook
     spellbook = pygame.transform.scale(spellbook, (1250, 750))
 
+    # Initialize canvas for drawing
     canvas = pygame.Surface((CANVAS_LENGTH, CANVAS_LENGTH))
+    # Make canvas white
     canvas.fill(WHITE)
 
+    # Initialize player sprite
     player = Player(
         "assets/Wizard-Left.png",
         ((SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_LENGTH) // 2 - 100),
     )
 
+    # Initialize enemy sprite
     enemy = Enemy(
         "assets/Wizard-Right.png",
         ((3 * SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_LENGTH) // 2 - 100),
     )
 
+    # Store sprites as pygame sprite group
     sprites = pygame.sprite.Group(player, enemy)
 
+    # Store # of spells casted and position of mouse cursor
     state = {
         "spell_count": 0,
         "last_pos": None,
     }
 
+    # Initialize array of Projectiles
     projectiles = []
 
+    # Return all needed variables
     return screen, canvas, player, sprites, state, enemy, spellbook, projectiles
 
 
@@ -605,17 +677,23 @@ def handle_drawing(canvas, state):
         canvas (pygame.Surface) - drawable surface for spell runes
         state (dictionary) - tracks # of spells and mouse position for canvas
     """
+    # Store position of mouse cursor
     mx, my = pygame.mouse.get_pos()
+    # Store x and y of canvas
     cx = mx - CANVAS_X
     cy = my - CANVAS_Y
 
+    # Detect when mouse is pressed down
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
+    # Only draw within bounds of canvas
     if 0 <= cx < CANVAS_LENGTH and 0 <= cy < CANVAS_LENGTH:
         if mouse_pressed:
             if state["last_pos"]:
+                # Draw a line between previous and current mouse position
                 pygame.draw.line(canvas, BLACK, state["last_pos"], (cx, cy), BRUSH_SIZE)
 
+            # Draw a dot on current mouse position
             pygame.draw.circle(canvas, BLACK, (cx, cy), BRUSH_SIZE // 2)
             state["last_pos"] = (cx, cy)
         else:
@@ -635,13 +713,18 @@ def save_canvas(canvas, state, player, enemy, projectiles):
         enemy (Entity) - instance of the enemy
         projectiles (array) - array of active Projectiles
     """
+    # Set image size
     scaled = pygame.transform.scale(canvas, (280, 280))
+    # Store canvas as image
     pygame.image.save(scaled, f"drawings/spell_{state['spell_count']}.png")
     state["spell_count"] += 1
 
+    # Store name of spell cast
     spell_name = recognize_spell()
+    # Cast the given spell
     cast_spell(spell_name, player, enemy, projectiles)
 
+    # Reset canvas to white
     canvas.fill(WHITE)
 
 def draw_player_canvas(screen, canvas, entity):
@@ -653,11 +736,16 @@ def draw_player_canvas(screen, canvas, entity):
         canvas (pygame.Surface) - drawable surface for spell runes
         entity (Entity) - entity who will see the canvas
     """
+    # Check for blind effect
     if "blind" in entity.effects:
+        # Store canvas
         black = pygame.Surface((CANVAS_LENGTH, CANVAS_LENGTH))
+        # Make canvas black
         black.fill(BLACK)
+        # Draw black canvas
         screen.blit(black, (CANVAS_X, CANVAS_Y))
     else:
+        # Draw canvas as normal
         screen.blit(canvas, (CANVAS_X, CANVAS_Y))
 
 def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
@@ -673,20 +761,20 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         spellbook (pygame.image) - image of spellbook for UI
         projectiles (array) - array of active Projectiles
     """
-    # Draw Background
+    # Draw background
     screen.fill(BLACK)
 
-     # Draw Spellbook
+    # Draw spellbook
     screen.blit(spellbook, (CENTER_X - 590, SCREEN_HEIGHT - 525))
 
-    # Draw Canvas
+    # Draw canvas
     draw_player_canvas(screen, canvas, player)
 
-    # Draw Player
+    # Draw entity sprites
     for entity in sprites:
         screen.blit(entity.image, entity.rect)
 
-    # Draw Player Mana
+    # Draw Player mana bar
     draw_value_bar(
         screen,
         "mana",
@@ -698,7 +786,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         20,
     )
 
-    # Draw Player Health
+    # Draw Player health bar
     draw_value_bar(
         screen,
         "health",
@@ -710,10 +798,11 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         20
     )
 
+    # Store Player effects as buffs and debuffs
     player_buffs = [e for e in player.effects if e in BUFFS]
     player_debuffs = [e for e in player.effects if e in DEBUFFS]
 
-    # Buffs ABOVE mana bar
+    # Draw buffs ABOVE mana bar
     draw_effect_row(
         screen,
         player,
@@ -723,7 +812,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         direction="up"
     )
 
-    # Debuffs BELOW health bar
+    # Draw debuffs BELOW health bar
     draw_effect_row(
         screen,
         player,
@@ -733,7 +822,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         direction="down"
     )
 
-    # Draw Enemy Mana
+    # Draw Enemy mana bar
     draw_value_bar(
         screen,
         "mana",
@@ -745,7 +834,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         20
     )
 
-    # Draw Enemy Health
+    # Draw Enemy health bar
     draw_value_bar(
         screen,
         "health",
@@ -757,10 +846,11 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         20
     )
 
+    # Store Enemy effects as buffs and debuffs
     enemy_buffs = [e for e in enemy.effects if e in BUFFS]
     enemy_debuffs = [e for e in enemy.effects if e in DEBUFFS]
 
-    # Buffs ABOVE mana bar
+    # Draw buffs ABOVE mana bar
     draw_effect_row(
         screen,
         enemy,
@@ -770,7 +860,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
         direction="up"
     )
 
-    # Debuffs BELOW health bar
+    # Draw debuffs BELOW health bar
     draw_effect_row(
         screen,
         enemy,
@@ -784,6 +874,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
     for projectile in projectiles:
         projectile.projectile_draw(screen)
 
+    # Update display
     pygame.display.flip()
 
 def recognize_spell():
@@ -811,34 +902,28 @@ def deal_damage(caster, target, base_damage):
     Returns:
         damage (int) - modified damage value of the spell
     """
+    # Store damage of spell
     damage = base_damage
 
-    # -------------------
-    # DEFENSIVE EFFECTS (target side)
-    # -------------------
+    # Check for defensive effects
     if "shield" in target.effects:
         shield = target.effects["shield"]
 
+        # Check for instance shield
         if shield.get("uses", 0) > 0:
+            # Half damage of spell
             damage *= 0.5
+            # Remove instance of shield
             shield["uses"] -= 1
 
+            # Remove shield from effects
             if shield["uses"] <= 0:
                 del target.effects["shield"]
 
-    # (Future: armor, resistances, etc. go here)
-
-    # -------------------
-    # APPLY DAMAGE
-    # -------------------
+    # Apply damage to target
     target.health = clamp(target.health - damage, 0, target.max_health)
 
-    # -------------------
-    # OFFENSIVE EFFECTS (caster side)
-    # -------------------
-
-    # (Future: crits, on-hit effects, etc. go here)
-
+    # Return modified damage value
     return damage
 
 def cast_spell(spell_name, caster, target, projectiles):
@@ -851,41 +936,50 @@ def cast_spell(spell_name, caster, target, projectiles):
         target (Entity) - entity to be affected by the spell
         projectiles (array) - array of active Projectiles
     """
+    # Store spell cast
     spell = Spell.from_name(spell_name, SPELL_LIST)
 
-    # CURSE CHECK
+    # Check for curse effect
     if "curse" in caster.effects:
+        # Store name of blocked spell
         blocked = caster.effects["curse"].get("blocked_spell")
 
+        # Check if spell is blocked
         if blocked == spell_name:
+        # Prevent casting of blocked spell
             print(f"{spell_name} is blocked by curse!")
             return
     
+    # Check for enough mana
     if not caster.spend_mana(spell.mana_cost):
+        # Prevent casting of spell
         print("Not enough mana!")
         return
     
-    # --- COUNTERSPELL LOGIC ---
+    # Check for counterspell
     if spell_name == "counterspell":
-        # Find a projectile targeting the caster
+        # Find projectile targeting caster
         for proj in projectiles:
+            # Check for target
             if proj.target == caster:
+                # Remove the spell in the air
                 projectiles.remove(proj)
                 print("Projectile countered!")
-                return  # stop here
+                return
 
         print("No projectile to counter!")
         return
 
+    # Check for type of spell
     if spell.delivery == "projectile":
+        # Add spell to projectiles
         projectiles.append(Projectile(caster, target, spell))
-    else:
-        resolve_spell_direct(spell, caster, target)
-
-    if spell.delivery == "projectile":
         print(f"{caster} cast {spell_name}! (projectile launched)")
     else:
+        # Resolve spell as Instant
+        resolve_spell_direct(spell, caster, target)
         print(f"{caster} cast {spell_name}! (instant)")
+        
 
 def resolve_spell_direct(spell, caster, target):
     """
@@ -896,13 +990,18 @@ def resolve_spell_direct(spell, caster, target):
         caster (Entity) - entity who cast the spell
         target (Entity) - entity to be affected by the spell
     """
+    # Deal damage of spell
     deal_damage(caster, target, spell.dmg)
 
+    # Search for spell effect
     for effect, chance in spell.effects.items():
+        # Store chance of application
         total_chance = min(chance, 1.0)
 
+        # Determine if effect gets applied
         if random.random() < total_chance:
             if effect in EFFECTS:
+                # Apply effect to target
                 EFFECTS[effect](caster, target)
     
     print(f"{caster} casts {spell}!")
@@ -918,38 +1017,47 @@ def resolve_spell(projectile):
     Args:
         projectile (array) - array of active Projectiles
     """
+    # Store properties of Projectile
     caster = projectile.caster
     target = projectile.target
     spell = projectile.spell
 
+    # Store damage of spell
     damage_dealt = deal_damage(caster, target, spell.dmg)
 
+    # Check if cast spell was Leech
     if spell.leech:
+        # Add damage dealt to caster health
         caster.health = clamp(
             caster.health + damage_dealt,
             0,
             caster.max_health
     )
 
+    # Search for spell effect
     for effect, chance in spell.effects.items():
+        # Store chance for application
         total_chance = chance
 
         # Apply caster buffs to modify chance
         if effect == "burning" and "kindling" in caster.effects:
             total_chance += caster.effects["kindling"]["bonus_chance"]
-
         if effect == "freezing" and "glaciate" in caster.effects:
             total_chance += caster.effects["glaciate"]["bonus_chance"]
 
+        # Ensure chance does not exceed 1.0
         total_chance = min(total_chance, 1.0)
 
-        # Log the effect with the calculated chance
+        # Log effect with calculated chance
         print(f"{effect} base chance: {chance} → modified chance: {total_chance}")
 
+        # Determine if spell effect is applied
         if random.random() < total_chance:
             if effect in EFFECTS:
+                # Apply spell effect
                 EFFECTS[effect](caster, target)
 
+    # Log spell damage and effects
     print(f"Spell damage:", spell.dmg)
     print(f"Player effects: ", caster.effects)
     print(f"Target effects: ", target.effects)
@@ -963,20 +1071,25 @@ def process_effects(entity, dt):
     """
     to_remove = []
 
+    # Check for effects
     for effect, data in entity.effects.items():
         data["duration"] -= dt
 
+        # Check for burning effect
         if effect == "burning":
+            # Deal damage over time
             deal_damage(entity, entity, data["tick_damage"] * dt)
 
-        # freezing doesn't deal damage, handled elsewhere
-
+        # Check for effect duration
         if data["duration"] <= 0:
+            # Remove effect when time runs out
             to_remove.append(effect)
 
     for effect in to_remove:
+        # Remove effect
         del entity.effects[effect]
     
+    # Check for blind effect
     if "blind" in entity.effects:
         entity.effects["blind"]["duration"] -= dt
 
@@ -990,20 +1103,29 @@ def regen_mana(player):
     Args:
         player (Entity) - entity to have mana restored
     """
+    # Store timestamp
     current_time = pygame.time.get_ticks()
 
+    # Check if 2 second has passed
     if current_time - player.last_mana_regen >= 2000:
+        # Regen 5 mana
         regen_amount = 5
 
+        #Check for freezing effect
         if "freezing" in player.effects:
+            # Store slow amount
             slow = player.effects["freezing"]["slow"]
+            # Reduce regen amount by slow amount
             regen_amount *= (1 - slow)
 
-         # Check for Blitz effect and increase regen if it's active
+         # Check for Blitz effect
         if "blitz" in player.effects:
+            # Store bonus amount
             bonus_regen = player.effects["blitz"]["bonus_regen"]
+            # Increase regen by bonus amount
             regen_amount += bonus_regen 
 
+        # Ensure mana does not exceed maximum
         player.mana = clamp(player.mana + regen_amount, 0, player.max_mana)
         player.last_mana_regen = current_time
 
@@ -1015,36 +1137,51 @@ def run():
     """
     Runs the game
     """
+    # Initialize game
     screen, canvas, player, sprites, state, enemy, spellbook, projectiles = init()
+    # Store clock
     clock = pygame.time.Clock()
 
+    # Run till interuppted
     running = True
     while running:
+        # Check for events
         running = handle_events(state, canvas, player, enemy, projectiles)
         
+        # Check for drawing on canvas
         handle_drawing(canvas, state)
 
+        # Store time for projectile flight
         dt = clock.tick(FPS) / 1000
 
+        # Draw projectiles
         for projectile in projectiles[:]:
+            # Store collision
             finished = projectile.update(dt)
 
+            # Check for collision
             if finished:
+                # Apply spell
                 resolve_spell(projectile)
+                # Remove from active projectiles
                 projectiles.remove(projectile)
 
+        # Process spell effects
         process_effects(player, dt)
         process_effects(enemy, dt)
 
+        # Process mana regen
         regen_mana(player)
 
+        # Update screen
         draw(screen, canvas, player, sprites, enemy, spellbook, projectiles)
 
+    # Quit the game
     pygame.quit()
 
 # ---------------
 # ENTRY POINT
 # ---------------
 if __name__ == "__main__":
-    run()
     #start_menu()
+    run()
