@@ -44,7 +44,7 @@ CANVAS_Y = (SCREEN_HEIGHT-CANVAS_LENGTH) - 30
 
 # Define constants for player stats
 MAX_MANA = 100
-MAX_HEALTH = 100
+MAX_HEALTH = 200
 
 # Define constants for colors
 WHITE = (255,255,255)
@@ -172,7 +172,7 @@ class Entity(pygame.sprite.Sprite):
         spend_mana() - determine if Entity has enough mana for a spell
         __str__() - return type of Class
     """
-    def __init__(self, icon, position, max_health=100, max_mana=100):
+    def __init__(self, icon, position, max_health=MAX_HEALTH, max_mana=MAX_MANA):
         """
         Initializes an Entity
 
@@ -296,13 +296,25 @@ class Projectile:
 
         # Image of projectile
         if spell.projectile_img:
-            self.image = get_image(spell.projectile_img)
+            img = get_image(spell.projectile_img)
+
+            # Flip if enemy is casting
+            if isinstance(caster, Enemy):
+                img = pygame.transform.flip(img, True, False)
+
+            self.image = img
         else:
             self.image = None
 
-        # Projectile start and end
-        self.start_pos = caster.rect.midright
-        self.end_pos = target.rect.midleft
+        # Start and end of projectile travel
+        if isinstance(caster, Enemy):
+            # Enemy shoots right to left
+            self.start_pos = caster.rect.midleft
+            self.end_pos = target.rect.midright
+        else:
+            # Player shoots left to right
+            self.start_pos = caster.rect.midright
+            self.end_pos = target.rect.midleft
 
         # Maximum time in air
         self.duration = duration
@@ -470,6 +482,54 @@ def start_menu():
     # Close the program
     sys.exit()
 
+def game_over_screen(screen, winner, state):
+    pygame.font.init()
+    title_font = pygame.font.SysFont("caveatregular", 80)
+    button_font = pygame.font.SysFont("caveatregular", 40)
+
+    running = True
+    while running:
+        screen.fill((30, 0, 0))
+
+        mouse = pygame.mouse.get_pos()
+
+        # Buttons
+        retry_button = pygame.Rect(CENTER_X - 100, CENTER_Y + 40, 200, 60)
+        quit_button = pygame.Rect(CENTER_X - 100, CENTER_Y + 120, 200, 60)
+
+        # Hover effect
+        pygame.draw.rect(screen, (170,170,170) if retry_button.collidepoint(mouse) else (100,100,100), retry_button)
+        pygame.draw.rect(screen, (170,170,170) if quit_button.collidepoint(mouse) else (100,100,100), quit_button)
+
+        # Text
+        result_text = title_font.render(f"{winner} Wins!", True, WHITE)
+        retry_text = button_font.render("Retry", True, WHITE)
+        quit_text = button_font.render("Quit", True, WHITE)
+
+        score_font = pygame.font.SysFont("caveatregular", 40)
+        score_text = score_font.render(f"Final Score: {int(state['score'])}", True, WHITE)
+        screen.blit(score_text, (CENTER_X - 110, CENTER_Y - 10))
+
+        # Draw text
+        screen.blit(result_text, (CENTER_X - 180, CENTER_Y - 100))
+        screen.blit(retry_text, (CENTER_X - 45, CENTER_Y + 40))
+        screen.blit(quit_text, (CENTER_X - 35, CENTER_Y + 120))
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if retry_button.collidepoint(mouse):
+                    run()   # restart game
+                    return
+                if quit_button.collidepoint(mouse):
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.update()
+
 def abbreviate_spell(name):
     """
     Abbreviates the name of a spell
@@ -528,8 +588,9 @@ def draw_effect_row(screen, entity, effects, x, y, direction="up"):
             label = font.render(label_text, True, GRAY)
 
             # Initialize text
-            text_rect = label.get_rect(center=(x + 18   , y + 55))
-            # Display text
+            icon_x = x + i * spacing
+
+            text_rect = label.get_rect(center=(icon_x + 20, y + 55))
             screen.blit(label, text_rect)
 
         # Draw effect icon
@@ -589,6 +650,7 @@ def init():
     state = {
         "spell_count": 0,
         "last_pos": None,
+        "score": 0
     }
 
     # Initialize array of Projectiles
@@ -623,38 +685,31 @@ def handle_events(state, canvas, player, enemy, projectiles):
                 canvas.fill(WHITE)
             # Check for number keys (1-9) to cast corresponding spells
             elif event.key == K_BACKQUOTE:
-                cast_spell("blindness", player, enemy, projectiles)
+                cast_spell("blindness", player, enemy, projectiles, state)
             elif event.key == K_1:
-                cast_spell("blitz", player, enemy, projectiles)
+                cast_spell("blitz", player, enemy, projectiles, state)
             elif event.key == K_2:
-                cast_spell("counterspell", enemy, player, projectiles)
+                cast_spell("counterspell", player, enemy, projectiles, state)
             elif event.key == K_3:
-                player.effects["curse"] = {
-                "duration": 5.0,
-                "blocked_spell": "fireball"
-                }
-                # cast_spell("curse", player, enemy, projectiles)
+                cast_spell("curse", player, enemy, projectiles)
             elif event.key == K_4:
-                cast_spell("fireball", player, enemy, projectiles)
+                cast_spell("fireball", player, enemy, projectiles, state)
             elif event.key == K_5:
-                cast_spell("frostbite", player, enemy, projectiles)
+                cast_spell("frostbite", player, enemy, projectiles, state)
             elif event.key == K_6:
-                cast_spell("glaciate", player, enemy, projectiles)
+                cast_spell("glaciate", player, enemy, projectiles, state)
             elif event.key == K_7:
-                cast_spell("kindling", player, enemy, projectiles)
+                cast_spell("kindling", player, enemy, projectiles, state)
             elif event.key == K_8:
-                cast_spell("leech", player, enemy, projectiles)
+                cast_spell("leech", player, enemy, projectiles, state)
             elif event.key == K_9:
-                cast_spell("roulette", player, enemy, projectiles)
+                cast_spell("roulette", player, enemy, projectiles, state)
             elif event.key == K_0:
-                cast_spell("shield", player, enemy, projectiles)
+                cast_spell("shield", player, enemy, projectiles, state)
             elif event.key == K_MINUS:
-                cast_spell("spike", player, enemy, projectiles)
+                cast_spell("spike", player, enemy, projectiles, state)
             elif event.key == K_EQUALS:
-                enemy.effects["shield"] = { 
-                    "duration": 9999, "uses": 1 
-                } 
-                print("Enemy given shield")
+                cast_spell("shield", player, enemy, projectiles, state)
             elif event.key == K_BACKSPACE:
                 player.health = clamp(player.health / 2, 0, player.max_health)
 
@@ -722,7 +777,7 @@ def save_canvas(canvas, state, player, enemy, projectiles):
     # Store name of spell cast
     spell_name = recognize_spell()
     # Cast the given spell
-    cast_spell(spell_name, player, enemy, projectiles)
+    cast_spell(spell_name, player, enemy, projectiles, state)
 
     # Reset canvas to white
     canvas.fill(WHITE)
@@ -748,7 +803,7 @@ def draw_player_canvas(screen, canvas, entity):
         # Draw canvas as normal
         screen.blit(canvas, (CANVAS_X, CANVAS_Y))
 
-def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
+def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
     """
     Draws the entire UI for the game
 
@@ -874,6 +929,17 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles):
     for projectile in projectiles:
         projectile.projectile_draw(screen)
 
+    # Draw score
+    font = pygame.font.SysFont("caveatregular", 30)
+    score_text = font.render(f"Score: {int(state['score'])}", True, WHITE)
+    screen.blit(score_text, (20, 20))
+
+    # Check for game over
+    if player.health <= 0 or enemy.health <= 0:
+        winner = "Enemy" if player.health <= 0 else "Player"
+        game_over_screen(screen, winner, state)
+        return
+
     # Update display
     pygame.display.flip()
 
@@ -890,7 +956,7 @@ def recognize_spell():
     # TEMP: replace later with drawing recognition
     return random.choice(list(SPELL_LIST.keys()))
 
-def deal_damage(caster, target, base_damage):
+def deal_damage(caster, target, base_damage, state):
     """
     Calculates the damage of the spell and applies it to the target
 
@@ -923,10 +989,17 @@ def deal_damage(caster, target, base_damage):
     # Apply damage to target
     target.health = clamp(target.health - damage, 0, target.max_health)
 
+    # Update score
+    if caster != target:
+        if isinstance(caster, Player):
+            state["score"] += damage   # damage dealt
+        if isinstance(target, Player):
+            state["score"] -= damage   # damage taken
+
     # Return modified damage value
     return damage
 
-def cast_spell(spell_name, caster, target, projectiles):
+def cast_spell(spell_name, caster, target, projectiles, state):
     """
     Determines if a spell can be cast before casting it if able
 
@@ -977,11 +1050,11 @@ def cast_spell(spell_name, caster, target, projectiles):
         print(f"{caster} cast {spell_name}! (projectile launched)")
     else:
         # Resolve spell as Instant
-        resolve_spell_direct(spell, caster, target)
+        resolve_spell_direct(spell, caster, target, state)
         print(f"{caster} cast {spell_name}! (instant)")
         
 
-def resolve_spell_direct(spell, caster, target):
+def resolve_spell_direct(spell, caster, target, state):
     """
     Applies the effects of an Instant spell
 
@@ -991,7 +1064,7 @@ def resolve_spell_direct(spell, caster, target):
         target (Entity) - entity to be affected by the spell
     """
     # Deal damage of spell
-    deal_damage(caster, target, spell.dmg)
+    deal_damage(caster, target, spell.dmg, state)
 
     # Search for spell effect
     for effect, chance in spell.effects.items():
@@ -1010,7 +1083,7 @@ def resolve_spell_direct(spell, caster, target):
     print(f"Target effects: ", target.effects)
     
 
-def resolve_spell(projectile):
+def resolve_spell(projectile, state):
     """
     Resolves the effects of a spell after its projectile collides with its target
 
@@ -1023,7 +1096,7 @@ def resolve_spell(projectile):
     spell = projectile.spell
 
     # Store damage of spell
-    damage_dealt = deal_damage(caster, target, spell.dmg)
+    damage_dealt = deal_damage(caster, target, spell.dmg, state)
 
     # Check if cast spell was Leech
     if spell.leech:
@@ -1062,7 +1135,7 @@ def resolve_spell(projectile):
     print(f"Player effects: ", caster.effects)
     print(f"Target effects: ", target.effects)
 
-def process_effects(entity, dt):
+def process_effects(entity, dt, state):
     """
     Applies the effects of a spell
 
@@ -1078,7 +1151,8 @@ def process_effects(entity, dt):
         # Check for burning effect
         if effect == "burning":
             # Deal damage over time
-            deal_damage(entity, entity, data["tick_damage"] * dt)
+            source = data.get("source", entity)
+            deal_damage(source, entity, data["tick_damage"] * dt, state)
 
         # Check for effect duration
         if data["duration"] <= 0:
@@ -1096,7 +1170,7 @@ def process_effects(entity, dt):
         if entity.effects["blind"]["duration"] <= 0:
             del entity.effects["blind"]
 
-def regen_mana(player):
+def regen_mana(entity):
     """
     Determines then applies the mana regeneration rate of a player
 
@@ -1107,27 +1181,77 @@ def regen_mana(player):
     current_time = pygame.time.get_ticks()
 
     # Check if 2 second has passed
-    if current_time - player.last_mana_regen >= 2000:
+    if current_time - entity.last_mana_regen >= 2000:
         # Regen 5 mana
         regen_amount = 5
 
         #Check for freezing effect
-        if "freezing" in player.effects:
+        if "freezing" in entity.effects:
             # Store slow amount
-            slow = player.effects["freezing"]["slow"]
+            slow = entity.effects["freezing"]["slow"]
             # Reduce regen amount by slow amount
             regen_amount *= (1 - slow)
 
          # Check for Blitz effect
-        if "blitz" in player.effects:
+        if "blitz" in entity.effects:
             # Store bonus amount
-            bonus_regen = player.effects["blitz"]["bonus_regen"]
+            bonus_regen = entity.effects["blitz"]["bonus_regen"]
             # Increase regen by bonus amount
             regen_amount += bonus_regen 
 
         # Ensure mana does not exceed maximum
-        player.mana = clamp(player.mana + regen_amount, 0, player.max_mana)
-        player.last_mana_regen = current_time
+        entity.mana = clamp(entity.mana + regen_amount, 0, entity.max_mana)
+        entity.last_mana_regen = current_time
+
+def enemy_cast(enemy, player, projectiles, state):
+    # Cooldown so enemy doesn't spam
+    if not hasattr(enemy, "last_cast_time"):
+        enemy.last_cast_time = 0
+
+    current_time = pygame.time.get_ticks()
+
+    if current_time - enemy.last_cast_time < 3000:
+        return
+
+    # Get affordable spells
+    affordable_spells = [
+        name for name, data in SPELL_LIST.items()
+        if data["mana_cost"] <= enemy.mana
+    ]
+
+    if not affordable_spells:
+        return
+
+    # Build weights based on mana cost (and usefulness)
+    weights = []
+    for name in affordable_spells:
+        data = SPELL_LIST[name]
+        cost = data["mana_cost"]
+        dmg = data.get("dmg", 0)
+
+        weight = cost  # base: higher cost = more likely
+
+        # Prefer damage when player is low
+        if player.health < 60 and dmg > 0:
+            weight += 30
+
+        # Avoid wasting counterspell if nothing to counter
+        if name == "counterspell" and not any(p.target == enemy for p in projectiles):
+            weight = 0
+
+        # Slightly reduce pure buff spam
+        if dmg == 0 and not data["effects"]:
+            weight *= 0.5
+
+        weights.append(weight)
+
+    # Pick a spell
+    spell_choice = random.choices(affordable_spells, weights=weights, k=1)[0]
+
+    # Cast it
+    cast_spell(spell_choice, enemy, player, projectiles, state)
+
+    enemy.last_cast_time = current_time
 
 
 # ---------------
@@ -1162,19 +1286,22 @@ def run():
             # Check for collision
             if finished:
                 # Apply spell
-                resolve_spell(projectile)
+                resolve_spell(projectile, state)
                 # Remove from active projectiles
                 projectiles.remove(projectile)
 
         # Process spell effects
-        process_effects(player, dt)
-        process_effects(enemy, dt)
+        process_effects(player, dt, state)
+        process_effects(enemy, dt, state)
 
         # Process mana regen
         regen_mana(player)
+        regen_mana(enemy)
+
+        enemy_cast(enemy, player, projectiles, state)
 
         # Update screen
-        draw(screen, canvas, player, sprites, enemy, spellbook, projectiles)
+        draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state)
 
     # Quit the game
     pygame.quit()
@@ -1183,5 +1310,4 @@ def run():
 # ENTRY POINT
 # ---------------
 if __name__ == "__main__":
-    #start_menu()
-    run()
+    start_menu()

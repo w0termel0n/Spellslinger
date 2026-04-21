@@ -2,14 +2,14 @@ from spell_list import SPELL_LIST
 import random
 
 def effect_blindness(caster, target):
-    caster.effects["blind"] = {
+    target.effects["blind"] = {
         "duration": 5.0
     }
 
 def effect_blitz(caster, target):
     caster.effects["blitz"] = {
         "duration": 5.0,
-        "bonus_regen": 5
+        "bonus_regen": 10
     }
 
 #def effect_counter(target):
@@ -23,7 +23,8 @@ def effect_curse(caster, target):
 def effect_burning(caster, target):
     target.effects["burning"] = {
         "duration": 5.0,
-        "tick_damage": 2
+        "tick_damage": 2,
+        "source": caster,
     }
 
 def effect_freezing(caster, target):
