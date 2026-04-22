@@ -1,4 +1,4 @@
-from spells import Spell
+from spell import Spell
 
 SPELL_LIST = {
     "blindness": {

@@ -6,9 +6,9 @@ import torch
 import torch.nn as nn
 import os
 import time
-from spells import SPELLS
-from model import load_model, predict
-from validator import RunePathValidator
+from src.spells import SPELLS
+from src.model import load_model, predict
+from src.validator import RunePathValidator
 
 CANVAS_SIZE = 280
 MODEL_INPUT_SIZE = 64

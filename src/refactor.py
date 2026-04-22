@@ -1,9 +1,15 @@
 import pygame
 import random
-from spells import Spell
+from PIL import Image
+from spell import Spell
 from spell_list import SPELL_LIST
+from spells import SPELLS
 import sys
 from effects import EFFECTS
+from model import load_model, predict
+from validator import RunePathValidator
+import numpy as np
+import os
 
 # Import pygame.locals for easier access to key coordinates
 from pygame.locals import (
@@ -653,14 +659,27 @@ def init():
         "score": 0
     }
 
+    # Create drawings dir if not already there
+    os.makedirs("drawings", exist_ok=True)
+
     # Initialize array of Projectiles
     projectiles = []
 
-    # Return all needed variables
-    return screen, canvas, player, sprites, state, enemy, spellbook, projectiles
+    # Initialize rune classifier and validator
+    model = load_model()
+    validator = RunePathValidator()
+
+    state = {
+        "spell_count": 0,
+        "last_pos": None,
+        "score": 0,
+        "stroke_points": []   # <-- add this
+    }
+
+    return screen, canvas, player, sprites, state, enemy, spellbook, projectiles, model, validator
 
 
-def handle_events(state, canvas, player, enemy, projectiles):
+def handle_events(state, canvas, player, enemy, projectiles, model, validator):
     """
     Handles action events for the program
 
@@ -718,8 +737,7 @@ def handle_events(state, canvas, player, enemy, projectiles):
             # Check if inside canvas bounds
             if (CANVAS_X <= mx < CANVAS_X + CANVAS_LENGTH and
                 CANVAS_Y <= my < CANVAS_Y + CANVAS_LENGTH):
-                
-                save_canvas(canvas, state, player, enemy, projectiles)
+                save_canvas(canvas, state, player, enemy, projectiles, model, validator)
 
     return True
 
@@ -751,13 +769,14 @@ def handle_drawing(canvas, state):
             # Draw a dot on current mouse position
             pygame.draw.circle(canvas, BLACK, (cx, cy), BRUSH_SIZE // 2)
             state["last_pos"] = (cx, cy)
+            state["stroke_points"].append((cx, cy))
         else:
             state["last_pos"] = None
     else:
         state["last_pos"] = None
 
 
-def save_canvas(canvas, state, player, enemy, projectiles):
+def save_canvas(canvas, state, player, enemy, projectiles, model, validator):
     """
     Saves drawing on the canvas before reseting the canvas to blank
 
@@ -771,13 +790,15 @@ def save_canvas(canvas, state, player, enemy, projectiles):
     # Set image size
     scaled = pygame.transform.scale(canvas, (280, 280))
     # Store canvas as image
-    pygame.image.save(scaled, f"drawings/spell_{state['spell_count']}.png")
+    save_path = f"drawings/spell_{state['spell_count']}.png"
+    pygame.image.save(scaled, save_path)
     state["spell_count"] += 1
-
-    # Store name of spell cast
-    spell_name = recognize_spell()
+    # Determine spell based on input rune
+    spell_name = recognize_spell(save_path, state["stroke_points"], model, validator)
+    state["stroke_points"] = []
     # Cast the given spell
-    cast_spell(spell_name, player, enemy, projectiles, state)
+    if spell_name:
+        cast_spell(spell_name, player, enemy, projectiles, state)
 
     # Reset canvas to white
     canvas.fill(WHITE)
@@ -943,18 +964,39 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
     # Update display
     pygame.display.flip()
 
-def recognize_spell():
+def recognize_spell(image_path, stroke_points, model, validator):
     """
-    Takes the rune drawn on canvas an inputs it into the CNN to be identified
+    Classifies the drawn rune using the CNN, then validates the stroke
+    geometry against the template for the predicted spell.
 
-    Args:
-        canvas (pygame.Surface) - surface containing the rune to be identified
-
-    Returns:
-        spell_name (string) - name of the spell identified from rune
+    Returns the spell name string if valid, or None if confidence or
+    geometry validation fails.
     """
-    # TEMP: replace later with drawing recognition
-    return random.choice(list(SPELL_LIST.keys()))
+    MODEL_INPUT_SIZE = 64
+
+    # Load the saved drawing and preprocess for the CNN
+    img = Image.open(image_path).convert("L")
+    img = img.resize((MODEL_INPUT_SIZE, MODEL_INPUT_SIZE))
+    arr = np.array(img) / 255.0
+    arr = arr.reshape(1, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE, 1)
+
+    prediction = predict(model, arr)
+
+    if prediction is None:
+        print("Spell not recognized: low confidence")
+        return None
+
+    spell_index = np.argmax(prediction)
+    spell_name = SPELLS.get(spell_index)
+
+    passed, score = validator.validate(stroke_points, spell_name)
+    print(f"{spell_name}: passed={passed} score={score:.3f}")
+
+    if not passed:
+        print("Spell not recognized: failed geometry validation")
+        return None
+
+    return spell_name
 
 def deal_damage(caster, target, base_damage, state):
     """
@@ -1262,7 +1304,7 @@ def run():
     Runs the game
     """
     # Initialize game
-    screen, canvas, player, sprites, state, enemy, spellbook, projectiles = init()
+    screen, canvas, player, sprites, state, enemy, spellbook, projectiles, model, validator = init()
     # Store clock
     clock = pygame.time.Clock()
 
@@ -1270,7 +1312,7 @@ def run():
     running = True
     while running:
         # Check for events
-        running = handle_events(state, canvas, player, enemy, projectiles)
+        running = handle_events(state, canvas, player, enemy, projectiles, model, validator)
         
         # Check for drawing on canvas
         handle_drawing(canvas, state)
