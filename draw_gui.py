@@ -2,13 +2,16 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 from PIL import Image, ImageDraw, ImageTk
 import numpy as np
-#import tensorflow as tf
+import torch
+import torch.nn as nn
 import os
 import time
 from spells import SPELLS
+from model import load_model, predict
+from validator import RunePathValidator
 
 CANVAS_SIZE = 280
-MODEL_INPUT_SIZE = 28
+MODEL_INPUT_SIZE = 64
 DATASET_DIR = "dataset"
 
 
@@ -37,7 +40,10 @@ class RuneDrawer:
 
         self.image = Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), "white")
         self.draw = ImageDraw.Draw(self.image)
+        self.stroke_points = []
 
+        self.model = load_model()
+        self.validator = RunePathValidator()
         #self.model = tf.keras.models.load_model("model/rune_classifier.h5")
 
         self.last_x = None
@@ -116,9 +122,11 @@ class RuneDrawer:
     def start_draw(self, event):
         self.last_x = event.x
         self.last_y = event.y
+        self.stroke_points = []
 
     def draw_rune(self, event):
         x, y = event.x, event.y
+        self.stroke_points.append((x,y))
         self.canvas.create_line(
             self.last_x, self.last_y, x, y,
             width=10, capstyle=tk.ROUND
@@ -147,10 +155,22 @@ class RuneDrawer:
 
     def identify_rune(self):
         rune = self.preprocess_image()
-        prediction = self.model.predict(rune, verbose=0)
+
+        prediction = predict(self.model, rune)
         spell_index = np.argmax(prediction)
-        spell_name = SPELLS.get(spell_index, "Unknown Spell")
+        spell_name = SPELLS.get(spell_index)
+        passed, score = self.validator.validate(
+            self.stroke_points,
+            spell_name
+        )
+        print(self.stroke_points)
+        print(f"{spell_name}: {passed} - {score}")
+        if not passed:
+            spell_name = "Unknown Spell"
+
         self.label.config(text=f"Cast: {spell_name}")
+        self.current_spell = spell_name
+        self.load_reference_image()
 
     # DATASET MANAGEMENT
 
