@@ -6,7 +6,7 @@ from spell_list import SPELL_LIST
 from spells import SPELLS
 import sys
 from effects import EFFECTS
-from model import load_model, predict
+from model import load_model, predict, train_model
 from validator import RunePathValidator
 import numpy as np
 import os
@@ -659,11 +659,13 @@ def init():
         "score": 0
     }
 
-    # Create drawings dir if not already there
-    os.makedirs("drawings", exist_ok=True)
-
     # Initialize array of Projectiles
     projectiles = []
+
+    # Train and save model if not found in env
+    if not os.path.exists("rune_cnn.pth"):
+        print("No model found, training from dataset...")
+        train_model("dataset", epochs=10)
 
     # Initialize rune classifier and validator
     model = load_model()
@@ -737,7 +739,7 @@ def handle_events(state, canvas, player, enemy, projectiles, model, validator):
             # Check if inside canvas bounds
             if (CANVAS_X <= mx < CANVAS_X + CANVAS_LENGTH and
                 CANVAS_Y <= my < CANVAS_Y + CANVAS_LENGTH):
-                save_canvas(canvas, state, player, enemy, projectiles, model, validator)
+                process_canvas(canvas, state, player, enemy, projectiles, model, validator)
 
     return True
 
@@ -776,7 +778,7 @@ def handle_drawing(canvas, state):
         state["last_pos"] = None
 
 
-def save_canvas(canvas, state, player, enemy, projectiles, model, validator):
+def process_canvas(canvas, state, player, enemy, projectiles, model, validator):
     """
     Saves drawing on the canvas before reseting the canvas to blank
 
@@ -789,18 +791,13 @@ def save_canvas(canvas, state, player, enemy, projectiles, model, validator):
     """
     # Set image size
     scaled = pygame.transform.scale(canvas, (280, 280))
-    # Store canvas as image
-    save_path = f"drawings/spell_{state['spell_count']}.png"
-    pygame.image.save(scaled, save_path)
-    state["spell_count"] += 1
-    # Determine spell based on input rune
-    spell_name = recognize_spell(save_path, state["stroke_points"], model, validator)
+    # ID and cast spell
+    spell_name = recognize_spell(scaled, state["stroke_points"], model, validator)
     state["stroke_points"] = []
-    # Cast the given spell
     if spell_name:
         cast_spell(spell_name, player, enemy, projectiles, state)
 
-    # Reset canvas to white
+    # Reset canvas
     canvas.fill(WHITE)
 
 def draw_player_canvas(screen, canvas, entity):
@@ -964,28 +961,29 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
     # Update display
     pygame.display.flip()
 
-def recognize_spell(image_path, stroke_points, model, validator):
+def recognize_spell(canvas, stroke_points, model, validator):
     """
     Classifies the drawn rune using the CNN, then validates the stroke
     geometry against the template for the predicted spell.
 
-    Returns the spell name string if valid, or None if confidence or
-    geometry validation fails.
+    Returns the spell name string if valid, or None if no valid rune is recognized.
     """
     MODEL_INPUT_SIZE = 64
 
-    # Load the saved drawing and preprocess for the CNN
-    img = Image.open(image_path).convert("L")
-    img = img.resize((MODEL_INPUT_SIZE, MODEL_INPUT_SIZE))
+    # Convert pygame surface → PIL image entirely in memory
+    raw = pygame.image.tostring(canvas, "RGB")
+    img = Image.frombytes("RGB", canvas.get_size(), raw)
+    img = img.convert("L").resize((MODEL_INPUT_SIZE, MODEL_INPUT_SIZE))
+
     arr = np.array(img) / 255.0
     arr = arr.reshape(1, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE, 1)
 
     prediction = predict(model, arr)
-
     if prediction is None:
-        print("Spell not recognized: low confidence")
+        print("Spell not recognized: failed at CNN")
         return None
 
+    from spells import SPELLS
     spell_index = np.argmax(prediction)
     spell_name = SPELLS.get(spell_index)
 
@@ -993,7 +991,7 @@ def recognize_spell(image_path, stroke_points, model, validator):
     print(f"{spell_name}: passed={passed} score={score:.3f}")
 
     if not passed:
-        print("Spell not recognized: failed geometry validation")
+        print("Spell not recognized: failed at geometry validation")
         return None
 
     return spell_name
