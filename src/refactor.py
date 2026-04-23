@@ -7,6 +7,7 @@ from spells import SPELLS
 import sys
 from effects import EFFECTS
 from model import load_model, predict, train_model
+from validator_visualizer import save_validation_viz
 from validator import RunePathValidator
 import numpy as np
 import os
@@ -993,6 +994,8 @@ def recognize_spell(canvas, stroke_points, model, validator):
 
     passed, score = validator.validate(stroke_points, spell_name)
     print(f"{spell_name}: passed={passed} score={score:.3f}")
+
+    save_validation_viz(canvas, stroke_points, spell_name, validator, passed, score)
 
     if not passed:
         print("Spell not recognized: failed at geometry validation")
