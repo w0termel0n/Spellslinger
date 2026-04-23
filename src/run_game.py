@@ -651,7 +651,10 @@ def init():
     state = {
         "spell_count": 0,
         "last_pos": None,
-        "score": 0
+        "score": 0,
+        "no_mana": False,
+        "unknown_rune": False,
+        "msg_timer": 0,
     }
 
     # Initialize array of Projectiles
@@ -670,7 +673,10 @@ def init():
         "spell_count": 0,
         "last_pos": None,
         "score": 0,
-        "stroke_points": []   # <-- add this
+        "stroke_points": [],
+        "no_mana": False,
+        "unknown_rune": False,
+        "msg_timer": 0,
     }
 
     return screen, canvas, player, sprites, state, enemy, background, spellbook, projectiles, model, validator
@@ -755,7 +761,7 @@ def process_canvas(canvas, state, player, enemy, projectiles, model, validator):
     # Set image size
     scaled = pygame.transform.scale(canvas, (280, 280))
     # ID and cast spell
-    spell_name = recognize_spell(scaled, state["stroke_points"], model, validator)
+    spell_name = recognize_spell(scaled, state["stroke_points"], model, validator, state)
     state["stroke_points"] = []
     if spell_name:
         cast_spell(spell_name, player, enemy, projectiles, state)
@@ -811,16 +817,19 @@ def draw(screen, canvas, player, sprites, enemy, background, spellbook, projecti
         screen.blit(entity.image, entity.rect)
 
     # Draw Player mana bar
-    draw_value_bar(
-        screen,
-        "mana",
-        player.mana,
-        MAX_MANA,
-        CENTER_X + 57,
-        SCREEN_HEIGHT - 160,
-        250,
-        20,
-    )
+    if "blind" not in player.effects:
+        draw_value_bar(
+            screen,
+            "mana",
+            player.mana,
+            MAX_MANA,
+            CENTER_X + 57,
+            SCREEN_HEIGHT - 160,
+            250,
+            20,
+        )
+    else:
+        pygame.draw.rect(screen, BLACK, (CENTER_X + 57, SCREEN_HEIGHT - 160, 250, 20))
 
     # Draw Player health bar
     draw_value_bar(
@@ -833,6 +842,15 @@ def draw(screen, canvas, player, sprites, enemy, background, spellbook, projecti
         250,
         20
     )
+
+    # Draw notification for lack of mana or unknown rune
+    font = FONT_S
+    if state["no_mana"] is True:
+        msg = font.render("Not Enough Mana!", True, BLUE)
+        screen.blit(msg, (CENTER_X + 100, SCREEN_HEIGHT - 250))
+    elif state["unknown_rune"] is True:
+        msg = font.render("Rune Unknown!", True, RED)
+        screen.blit(msg, (CENTER_X + 100, SCREEN_HEIGHT - 250))
 
     # Store Player effects as buffs and debuffs
     player_buffs = [e for e in player.effects if e in BUFFS]
@@ -924,7 +942,7 @@ def draw(screen, canvas, player, sprites, enemy, background, spellbook, projecti
     # Update display
     pygame.display.flip()
 
-def recognize_spell(canvas, stroke_points, model, validator):
+def recognize_spell(canvas, stroke_points, model, validator, state):
     """
     Classifies the drawn rune using the CNN, then validates the stroke
     geometry against the template for the predicted spell.
@@ -944,6 +962,8 @@ def recognize_spell(canvas, stroke_points, model, validator):
     prediction = predict(model, arr)
     if prediction is None:
         print("Spell not recognized: failed at CNN")
+        state["unknown_rune"] = True
+        state["msg_timer"] = 2.0
         return None
 
     from spells import SPELLS
@@ -955,6 +975,8 @@ def recognize_spell(canvas, stroke_points, model, validator):
 
     if not passed:
         print("Spell not recognized: failed at geometry validation")
+        state["unknown_rune"] = True
+        state["msg_timer"] = 2.0
         return None
 
     return spell_name
@@ -1023,6 +1045,8 @@ def cast_spell(spell_name, caster, target, projectiles, state):
     if not caster.spend_mana(spell.mana_cost):
         # Prevent casting of spell
         print("Not enough mana!")
+        state["no_mana"] = True
+        state["msg_timer"] = 2.0
         return
     
     # Check for counterspell
@@ -1282,6 +1306,13 @@ def run():
         # Process spell effects
         process_effects(player, dt, state)
         process_effects(enemy, dt, state)
+
+        # Tick timer for spell errors
+        if state["msg_timer"] > 0:
+            state["msg_timer"] -= dt
+            if state["msg_timer"] <= 0:
+                state["no_mana"] = False
+                state["unknown_rune"] = False
 
         # Process mana regen
         regen_mana(player)
