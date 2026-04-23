@@ -16,6 +16,7 @@ class RunePathValidator:
         "blitz": 0.90,
         "blindness": 0.885,
         "curse": 0.75,
+        "fireball": 0.90, # new line
         "roulette": 0.875,
         "shield": 0.85,
         "spike": 0.85

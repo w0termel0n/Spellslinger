@@ -56,7 +56,7 @@ SPELL_LIST = {
         "delivery": "instant",
     },
     "leech": {
-        "dmg": 20,
+        "dmg": 30,
         "mana_cost": 40,
         "effects": {"leech": 1},
         "delivery": "projectile",

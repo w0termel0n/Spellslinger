@@ -13,25 +13,10 @@ import os
 
 # Import pygame.locals for easier access to key coordinates
 from pygame.locals import (
-    K_EQUALS,
-    K_MINUS,
     K_ESCAPE,
-    K_c,
     KEYDOWN,
     MOUSEBUTTONUP,
     QUIT,
-    K_BACKQUOTE,
-    K_1,
-    K_2,
-    K_3,
-    K_4,
-    K_5,
-    K_6,
-    K_7,
-    K_8,
-    K_9,
-    K_0,
-    K_BACKSPACE,
 )
 
 # ---------------
@@ -44,9 +29,10 @@ CENTER_X = SCREEN_WIDTH // 2
 CENTER_Y = SCREEN_HEIGHT // 2
 
 # Define constants for canvas width, height, and placement
-CANVAS_LENGTH = 230
-CANVAS_X = (CENTER_X) - 282
-CANVAS_Y = (SCREEN_HEIGHT-CANVAS_LENGTH) - 30
+CANVAS_WIDTH = 258
+CANVAS_HEIGHT = 238
+CANVAS_X = (CENTER_X) - 296
+CANVAS_Y = 433
 
 # Define constants for player stats
 MAX_MANA = 100
@@ -190,7 +176,7 @@ class Entity(pygame.sprite.Sprite):
         """
         super().__init__()
         # Entity icon
-        self.image = pygame.image.load(icon).convert()
+        self.image = pygame.image.load(icon).convert_alpha()
         self.image = pygame.transform.scale(self.image, (200, 250))
 
         # Surface to display icon
@@ -631,26 +617,31 @@ def init():
     # Title game window
     pygame.display.set_caption("Spellslinger")
 
+    # Load image of background
+    background = pygame.image.load('assets/pixel_art_town.png').convert()
+    # Create image of background
+    background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
     # Load image of spellbook for UI
     spellbook = pygame.image.load("assets/Spellbook.png")
     # Create image of spellbook
     spellbook = pygame.transform.scale(spellbook, (1250, 750))
 
     # Initialize canvas for drawing
-    canvas = pygame.Surface((CANVAS_LENGTH, CANVAS_LENGTH))
+    canvas = pygame.Surface((CANVAS_WIDTH, CANVAS_HEIGHT))
     # Make canvas white
     canvas.fill(WHITE)
 
     # Initialize player sprite
     player = Player(
         "assets/Wizard-Left.png",
-        ((SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_LENGTH) // 2 - 100),
+        ((SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_HEIGHT) // 2 - 100),
     )
 
     # Initialize enemy sprite
     enemy = Enemy(
         "assets/Wizard-Right.png",
-        ((3 * SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_LENGTH) // 2 - 100),
+        ((3 * SCREEN_WIDTH // 4) - 100, (SCREEN_HEIGHT - CANVAS_HEIGHT) // 2 - 100),
     )
 
     # Store sprites as pygame sprite group
@@ -682,7 +673,7 @@ def init():
         "stroke_points": []   # <-- add this
     }
 
-    return screen, canvas, player, sprites, state, enemy, spellbook, projectiles, model, validator
+    return screen, canvas, player, sprites, state, enemy, background, spellbook, projectiles, model, validator
 
 
 def handle_events(state, canvas, player, enemy, projectiles, model, validator):
@@ -706,43 +697,11 @@ def handle_events(state, canvas, player, enemy, projectiles, model, validator):
         if event.type == KEYDOWN:
             if event.key == K_ESCAPE:
                 return False
-            elif event.key == K_c:
-                canvas.fill(WHITE)
-            # Check for number keys (1-9) to cast corresponding spells
-            elif event.key == K_BACKQUOTE:
-                cast_spell("blindness", player, enemy, projectiles, state)
-            elif event.key == K_1:
-                cast_spell("blitz", player, enemy, projectiles, state)
-            elif event.key == K_2:
-                cast_spell("counterspell", player, enemy, projectiles, state)
-            elif event.key == K_3:
-                cast_spell("curse", player, enemy, projectiles)
-            elif event.key == K_4:
-                cast_spell("fireball", player, enemy, projectiles, state)
-            elif event.key == K_5:
-                cast_spell("frostbite", player, enemy, projectiles, state)
-            elif event.key == K_6:
-                cast_spell("glaciate", player, enemy, projectiles, state)
-            elif event.key == K_7:
-                cast_spell("kindling", player, enemy, projectiles, state)
-            elif event.key == K_8:
-                cast_spell("leech", player, enemy, projectiles, state)
-            elif event.key == K_9:
-                cast_spell("roulette", player, enemy, projectiles, state)
-            elif event.key == K_0:
-                cast_spell("shield", player, enemy, projectiles, state)
-            elif event.key == K_MINUS:
-                cast_spell("spike", player, enemy, projectiles, state)
-            elif event.key == K_EQUALS:
-                cast_spell("shield", player, enemy, projectiles, state)
-            elif event.key == K_BACKSPACE:
-                player.health = clamp(player.health / 2, 0, player.max_health)
-
         elif event.type == MOUSEBUTTONUP and event.button == 1:
             mx, my = event.pos  # mouse position at release
             # Check if inside canvas bounds
-            if (CANVAS_X <= mx < CANVAS_X + CANVAS_LENGTH and
-                CANVAS_Y <= my < CANVAS_Y + CANVAS_LENGTH):
+            if (CANVAS_X <= mx < CANVAS_X + CANVAS_WIDTH and
+                CANVAS_Y <= my < CANVAS_Y + CANVAS_HEIGHT):
                 process_canvas(canvas, state, player, enemy, projectiles, model, validator)
 
     return True
@@ -766,7 +725,7 @@ def handle_drawing(canvas, state):
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
     # Only draw within bounds of canvas
-    if 0 <= cx < CANVAS_LENGTH and 0 <= cy < CANVAS_LENGTH:
+    if 0 <= cx < CANVAS_WIDTH and 0 <= cy < CANVAS_HEIGHT:
         if mouse_pressed:
             if state["last_pos"]:
                 # Draw a line between previous and current mouse position
@@ -816,7 +775,7 @@ def draw_player_canvas(screen, canvas, entity):
     # Check for blind effect
     if "blind" in entity.effects:
         # Store canvas
-        black = pygame.Surface((CANVAS_LENGTH, CANVAS_LENGTH))
+        black = pygame.Surface((CANVAS_WIDTH, CANVAS_HEIGHT))
         # Make canvas black
         black.fill(BLACK)
         # Draw black canvas
@@ -825,7 +784,7 @@ def draw_player_canvas(screen, canvas, entity):
         # Draw canvas as normal
         screen.blit(canvas, (CANVAS_X, CANVAS_Y))
 
-def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
+def draw(screen, canvas, player, sprites, enemy, background, spellbook, projectiles, state):
     """
     Draws the entire UI for the game
 
@@ -839,7 +798,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
         projectiles (array) - array of active Projectiles
     """
     # Draw background
-    screen.fill(BLACK)
+    screen.blit(background, (0, 0))
 
     # Draw spellbook
     screen.blit(spellbook, (CENTER_X - 590, SCREEN_HEIGHT - 525))
@@ -953,7 +912,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
 
     # Draw score
     font = FONT_S
-    score_text = font.render(f"Score: {int(state['score'])}", True, WHITE)
+    score_text = font.render(f"Score: {int(state['score'])}", True, BLACK)
     screen.blit(score_text, (20, 20))
 
     # Check for game over
@@ -1035,10 +994,14 @@ def deal_damage(caster, target, base_damage, state):
 
     # Update score
     if caster != target:
+        # Increment by damage dealt
         if isinstance(caster, Player):
-            state["score"] += damage   # damage dealt
+            state["score"] += damage
+        # Decrement by damage taken (to a minimum of 0)
         if isinstance(target, Player):
-            state["score"] -= damage   # damage taken
+            state["score"] -= damage
+            if state["score"] < 0:
+                state["score"] = 0
 
     # Return modified damage value
     return damage
@@ -1146,7 +1109,7 @@ def resolve_spell(projectile, state):
     if spell.leech:
         # Add damage dealt to caster health
         caster.health = clamp(
-            caster.health + damage_dealt,
+            caster.health + (1.5 * damage_dealt),
             0,
             caster.max_health
     )
@@ -1206,13 +1169,6 @@ def process_effects(entity, dt, state):
     for effect in to_remove:
         # Remove effect
         del entity.effects[effect]
-    
-    # Check for blind effect
-    if "blind" in entity.effects:
-        entity.effects["blind"]["duration"] -= dt
-
-        if entity.effects["blind"]["duration"] <= 0:
-            del entity.effects["blind"]
 
 def regen_mana(entity):
     """
@@ -1306,7 +1262,7 @@ def run():
     Runs the game
     """
     # Initialize game
-    screen, canvas, player, sprites, state, enemy, spellbook, projectiles, model, validator = init()
+    screen, canvas, player, sprites, state, enemy, background, spellbook, projectiles, model, validator = init()
     # Store clock
     clock = pygame.time.Clock()
 
@@ -1345,7 +1301,7 @@ def run():
         enemy_cast(enemy, player, projectiles, state)
 
         # Update screen
-        draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state)
+        draw(screen, canvas, player, sprites, enemy, background, spellbook, projectiles, state)
 
     # Quit the game
     pygame.quit()
