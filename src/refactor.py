@@ -431,10 +431,14 @@ def start_menu():
 
     # Initialize fonts
     pygame.font.init()
-    # Store font for regular buttons
-    font = pygame.font.SysFont("caveatregular", 30)
-    # Store font for title
-    title_font = pygame.font.SysFont("caveatregular", 80)
+    # Store fonts in global vars
+    global FONT_S, FONT_M, FONT_L
+    FONT_S = pygame.font.Font("assets/fonts/Caveat-VariableFont_wght.ttf", 30)
+    FONT_M = pygame.font.Font("assets/fonts/Caveat-VariableFont_wght.ttf", 40)
+    FONT_L = pygame.font.Font("assets/fonts/Caveat-VariableFont_wght.ttf", 80)
+    
+    font = FONT_S
+    title_font = FONT_L
 
     # Run until interrupted
     running = True
@@ -490,8 +494,8 @@ def start_menu():
 
 def game_over_screen(screen, winner, state):
     pygame.font.init()
-    title_font = pygame.font.SysFont("caveatregular", 80)
-    button_font = pygame.font.SysFont("caveatregular", 40)
+    title_font = FONT_L
+    button_font = FONT_M
 
     running = True
     while running:
@@ -512,7 +516,7 @@ def game_over_screen(screen, winner, state):
         retry_text = button_font.render("Retry", True, WHITE)
         quit_text = button_font.render("Quit", True, WHITE)
 
-        score_font = pygame.font.SysFont("caveatregular", 40)
+        score_font = FONT_M
         score_text = score_font.render(f"Final Score: {int(state['score'])}", True, WHITE)
         screen.blit(score_text, (CENTER_X - 110, CENTER_Y - 10))
 
@@ -589,7 +593,7 @@ def draw_effect_row(screen, entity, effects, x, y, direction="up"):
             label_text = abbreviate_spell(blocked)
 
             # Store font for text
-            font = pygame.font.SysFont("caveatregular", 30)
+            font = FONT_S
             # Store text of blocked spell
             label = font.render(label_text, True, GRAY)
 
@@ -948,7 +952,7 @@ def draw(screen, canvas, player, sprites, enemy, spellbook, projectiles, state):
         projectile.projectile_draw(screen)
 
     # Draw score
-    font = pygame.font.SysFont("caveatregular", 30)
+    font = FONT_S
     score_text = font.render(f"Score: {int(state['score'])}", True, WHITE)
     screen.blit(score_text, (20, 20))
 
