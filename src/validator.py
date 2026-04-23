@@ -16,10 +16,10 @@ class RunePathValidator:
         "blitz": 0.90,
         "blindness": 0.885,
         "curse": 0.75,
-        "fireball": 0.90, # new line
+        "fireball": 0.90,
         "roulette": 0.875,
         "shield": 0.85,
-        "spike": 0.85
+        "spike": 0.83
     }
 
     def __init__(self, samples=64):

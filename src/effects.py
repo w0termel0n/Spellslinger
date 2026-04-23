@@ -81,6 +81,11 @@ def effect_roulette(caster, target):
         "duration": 5.0,
         "bonus_chance": 0.25
     }
+
+    caster.effects["shield"] = {
+        "duration": 5,
+        "protection": 1
+    }
     
     target.effects["blitz"] = {
         "duration": 5.0,
@@ -113,14 +118,14 @@ def effect_roulette(caster, target):
     }
 
     target.effects["shield"] = {
-        "duration": 9999,
-        "uses": 1
+        "duration": 5,
+        "protection": 1
     }
 
 def effect_shield(caster, target):
     caster.effects["shield"] = {
-        "duration": 9999,
-        "uses": 1
+        "duration": 5,
+        "protection": 1
     }
 
 

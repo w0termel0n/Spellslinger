@@ -271,7 +271,7 @@ class Projectile:
         update() - tracks the position of the projectile
         projectile_draw() - draw the projectile in flight
     """
-    def __init__(self, caster, target, spell, duration=2.0):
+    def __init__(self, caster, target, spell, duration=1):
         """
         Initializes a Projectile
 
@@ -618,7 +618,7 @@ def init():
     pygame.display.set_caption("Spellslinger")
 
     # Load image of background
-    background = pygame.image.load('assets/pixel_art_town.png').convert()
+    background = pygame.image.load('assets/field_background.png').convert()
     # Create image of background
     background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -976,18 +976,7 @@ def deal_damage(caster, target, base_damage, state):
 
     # Check for defensive effects
     if "shield" in target.effects:
-        shield = target.effects["shield"]
-
-        # Check for instance shield
-        if shield.get("uses", 0) > 0:
-            # Half damage of spell
-            damage *= 0.5
-            # Remove instance of shield
-            shield["uses"] -= 1
-
-            # Remove shield from effects
-            if shield["uses"] <= 0:
-                del target.effects["shield"]
+            damage = 0
 
     # Apply damage to target
     target.health = clamp(target.health - damage, 0, target.max_health)
